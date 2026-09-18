@@ -1,0 +1,1 @@
+ALTER TABLE `flowos_evidence` ADD `tenantKey` varchar(128) DEFAULT 'demo' NOT NULL;
