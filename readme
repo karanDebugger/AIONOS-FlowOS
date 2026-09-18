@@ -1,0 +1,284 @@
+# AIONOS FlowOS
+
+## Agentic Outcome-to-Operations Control Tower
+
+AIONOS FlowOS is a governed Agentic AI control plane that carries an outcome from an initial opportunity through evidence validation, readiness, dependencies, policy review, human approval, handoff preparation, and run-state monitoring.
+
+> **Core principle:** no evidence, no invention; no approval, no external action.
+
+FlowOS is designed for teams that need the speed of agentic automation without losing provenance, accountability, approval boundaries, or operational visibility.
+
+## Why this project matters
+
+Most agentic prototypes stop at a chat interface or an impressive extraction demo. FlowOS addresses the harder operational problem: **how to move from a business promise to a delivery-ready, governable service**.
+
+The system makes every important decision inspectable. It preserves document provenance, distinguishes source-backed facts from missing or conflicting information, routes sensitive decisions to humans, and records the complete agent trace.
+
+## What is implemented
+
+### Governed workflow
+
+```mermaid
+flowchart LR
+  A[Intake Agent] --> B[Evidence Agent]
+  B --> C[Readiness Agent]
+  C --> D[Dependency Agent]
+  D --> E[Policy Agent]
+  E --> F{Human approval gate}
+  F -->|Approved| G[Handoff Agent]
+  F -->|Changes / rejected / escalated| H[Work items and review]
+  G --> I[Run-State Agent]
+```
+
+### Core capabilities
+
+- **Persistent domain model** for cases, documents, evidence, dependencies, work items, approvals, risks, traces, telemetry, evaluations, and audit events.
+
+- **Document ingestion** for PDF, TXT, Markdown, CSV, and JSON sources with SHA-256 checksums, page-aware chunking, processing states, provenance, and object storage.
+
+- **Evidence Agent** with `SOURCE_BACKED`, `MISSING`, and `CONFLICTING` classifications, citations, confidence, abstention, and prompt-injection isolation.
+
+- **Bounded multi-agent workflow** covering Intake, Evidence, Readiness, Dependencies, Policy, Handoff, and Run State.
+
+- **Human-gated approvals** with approve, reject, request-changes, and escalate decisions.
+
+- **Tenant-aware RBAC** with server-side permissions for administrator, operator, reviewer, viewer, and user roles.
+
+- **Fail-closed authorization** that does not rely on frontend visibility for security decisions.
+
+- **Hybrid retrieval** combining lexical ranking with deterministic embedding metadata and cosine reranking.
+
+- **Direct object-storage upload contract** with presigned uploads, tenant-scoped keys, size validation, object-length validation, and checksum verification.
+
+- **Optional structured LLM gateway** with Zod validation, usage metadata, bounded output, explicit provider status, and safe unavailable-provider behavior.
+
+- **Agent observability** with traces, tool allowlists, latency, model metadata, cost fields, safety flags, and human-review state.
+
+- **Evaluation Dashboard** with deterministic golden and adversarial cases for stale evidence, conflicting policies, missing owners, prompt injection, unavailable APIs, duplicate events, partial failure, and unsupported claims.
+
+## Product surfaces
+
+| Surface | Purpose |
+| --- | --- |
+| Control Tower | Operational overview of handoffs, blockers, evidence, approvals, dependencies, and run-state health |
+| Handoff Cases | Case detail from outcome statement through handoff and run state |
+| Approval Inbox | Human decisions and governed approval gates |
+| Documents / Knowledge | Upload, parse, index, inspect chunks, retrieve evidence, and launch workflows |
+| Agent Activity | Trace and audit inspection |
+| Run-State / Telemetry | Shadow-mode metrics and operational observations |
+| Policy & Guardrails | Visible safety rules and policy conflicts |
+| Evaluation Dashboard | Golden/adversarial evaluation results |
+
+## Architecture
+
+FlowOS uses a full-stack TypeScript architecture:
+
+- **Frontend:** React 19, Vite, Tailwind CSS 4, shadcn/ui components, Wouter routing, Lucide icons.
+
+- **Backend:** Node.js, Express, tRPC 11, Drizzle ORM, MySQL/TiDB.
+
+- **Persistence:** MySQL/TiDB domain tables with audit and trace metadata.
+
+- **Storage:** Server-side object-storage helpers with presigned upload support.
+
+- **AI boundary:** Server-only structured LLM gateway with deterministic demo fallback.
+
+- **Testing:** Vitest, TypeScript compiler checks, production Vite/esbuild build.
+
+The application keeps the demo path explicitly labeled. When a live provider is not configured, FlowOS uses deterministic retrieval and extraction behavior rather than pretending that a model call occurred.
+
+## Run locally in VS Code
+
+### Prerequisites
+
+Install the following before opening the project:
+
+- Node.js 20 or newer
+
+- Corepack-enabled pnpm 10
+
+- Git
+
+- MySQL 8+, TiDB Cloud, or another MySQL-compatible database for persistence
+
+- VS Code
+
+The dashboard can start in deterministic demo mode without a configured database. Database-backed ingestion, persistence, authentication, and object storage require the corresponding environment variables.
+
+### Clone and install
+
+```bash
+git clone https://github.com/<your-username>/aionos-flowos.git
+cd aionos-flowos
+
+corepack enable
+corepack prepare pnpm@10.4.1 --activate
+pnpm install
+
+touch .env
+code .
+```
+
+For Windows, run these commands in **WSL** or Git Bash. The development script uses the Unix-style `NODE_ENV=development` syntax.
+
+### Configure environment variables
+
+Open `.env` and set the values available in your environment. Keep secrets out of Git.
+
+```
+# Required for database-backed persistence
+DATABASE_URL=mysql://username:password@127.0.0.1:3306/aionos_flowos
+
+# Required by the session/auth layer in a real deployment
+JWT_SECRET=replace-with-a-long-random-secret
+VITE_APP_ID=your-oauth-app-id
+OAUTH_SERVER_URL=https://api.manus.im
+OWNER_OPEN_ID=your-owner-open-id
+
+# Required for object storage and the built-in Forge-compatible gateway
+BUILT_IN_FORGE_API_URL=https://forge.manus.im
+BUILT_IN_FORGE_API_KEY=replace-with-server-side-key
+
+# Safe default for local development
+FLOWOS_DEMO_MODE=true
+FLOWOS_LIVE_LLM=false
+FLOWOS_EMBEDDING_MODEL=flowos-deterministic-v1
+
+# Optional live structured LLM configuration
+FLOWOS_LLM_PROVIDER=built-in
+FLOWOS_LLM_MODEL=your-approved-model
+FLOWOS_LLM_API_KEY=optional-provider-key
+```
+
+`BUILT_IN_FORGE_API_KEY`, `JWT_SECRET`, and provider keys must remain server-side. Do not expose them through `VITE_*` variables or commit them to GitHub.
+
+### Prepare the database
+
+After setting `DATABASE_URL`, generate and apply the Drizzle migrations:
+
+```bash
+pnpm db:push
+```
+
+If you are using a managed database and want to review the generated SQL before applying it:
+
+```bash
+pnpm drizzle-kit generate
+pnpm drizzle-kit migrate
+```
+
+### Start the development server
+
+```bash
+pnpm dev
+```
+
+Open the local URL printed by the terminal, normally:
+
+```
+http://localhost:3000
+```
+
+In VS Code, use **Terminal → New Terminal** for the server and a second terminal for checks. The browser preview automatically reloads when source files change.
+
+## Verification commands
+
+Run the same commands used to validate the project:
+
+```bash
+# TypeScript validation
+pnpm check
+
+# Unit and safety tests
+pnpm test
+
+# Production frontend and server build
+pnpm build
+
+# Run the production bundle locally after building
+pnpm start
+```
+
+A useful one-command verification pass is:
+
+```bash
+pnpm check && pnpm test && pnpm build
+```
+
+## Useful development commands
+
+```bash
+# Format the codebase
+pnpm format
+
+# Inspect the Drizzle schema
+pnpm drizzle-kit generate
+
+# Run a focused test file
+pnpm vitest run server/flowos/phase12.security.test.ts
+
+# Check repository status
+git status
+
+# Create a feature branch
+git checkout -b feature/your-flowos-change
+```
+
+## Security and governance model
+
+FlowOS is intentionally conservative around external actions. Agents may extract, retrieve, classify, recommend, prepare, and route. They may not self-approve a sensitive action, grant privileged access, deploy production code, change employment or financial records, or make an external commitment.
+
+Authorization is enforced on the server. The application resolves the active user, role, permission, and tenant before protected procedures execute. Missing identity or tenant context fails closed outside explicitly configured demo mode. Retrieved document text is treated as untrusted data, including text that attempts to act like a system or developer instruction.
+
+## Project structure
+
+```
+client/
+  src/
+    components/       Shared UI and dashboard components
+    pages/            Control Tower, Documents, and operational views
+    lib/trpc.ts       Typed tRPC client
+server/
+  _core/              Runtime, auth, environment, and tRPC infrastructure
+  flowos/             Ingestion, retrieval, workflow, evaluation, and LLM gateway
+  db.ts               Drizzle persistence helpers
+  routers.ts          Typed API procedures
+drizzle/
+  schema.ts            MySQL/TiDB schema
+  migrations/          Generated database migrations
+docs/
+  architecture.md      Architecture and safety boundary
+  completion-report.md Implementation report
+shared/
+  types.ts             Shared application types
+```
+
+## Current production boundary
+
+The repository is operational as a production-minded MVP and is explicitly transparent about what remains environment-specific:
+
+- The default provider mode is deterministic demo mode.
+
+- Production vector infrastructure must be selected and operated separately from deterministic embedding metadata.
+
+- External connector adapters still require provider-specific credentials, contracts, timeouts, and idempotency behavior.
+
+- Antivirus scanning, backup policy, deployment migration automation, and staging runbooks should be added before handling real customer data.
+
+- Evaluation cases are deterministic synthetic benchmarks and should be expanded with production-like datasets before release gating.
+
+## Why this is a strong engineering project
+
+This project demonstrates more than frontend implementation. It shows the ability to design and ship an AI-enabled operational system with explicit boundaries around evidence, safety, identity, tenancy, observability, persistence, evaluation, and human control.
+
+For a hiring manager or engineering reviewer, the most important design decision is that FlowOS does not treat model output as authority. It treats model output as a bounded, inspectable proposal that must remain grounded in evidence and pass through the correct human gate.
+
+## License
+
+This project is released under the MIT License. Add the final copyright holder and repository-specific license text before publishing publicly.
+
+## References
+
+[1]: docs/architecture.md "AIONOS FlowOS architecture and safety boundary"
+
+[2]: docs/completion-report.md "AIONOS FlowOS completion report"
